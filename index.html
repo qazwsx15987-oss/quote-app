@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Hàng Ngày</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #ff758c, #ff7eb3);
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
+        }
+        h1 {
+            font-size: 26px;
+            margin-bottom: 15px;
+        }
+        p {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 10px;
+        }
+        .countdown {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quote Hôm Nay</h1>
+        <p id="quote">Đang tải...</p>
+        <div class="countdown">Quote mới vào lúc 5h sáng: <span id="countdown"></span></div>
+    </div>
+
+    <script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyJLqrtYiCQ-POYDBZbl5-XYIp4O8um-g_2lt-q2XMNPOk_NLkgWVbnyn14wkrqwwND7A/exec";
+
+        async function fetchQuotes() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                return data.quotes;
+            } catch (error) {
+                console.error("Lỗi khi lấy dữ liệu:", error);
+                return [];
+            }
+        }
+
+        function getDeviceId() {
+            let deviceId = localStorage.getItem("deviceId");
+            if (!deviceId) {
+                deviceId = "device-" + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem("deviceId", deviceId);
+            }
+            return deviceId;
+        }
+
+        function getTodayKey() {
+            let now = new Date();
+            if (now.getHours() < 5) {
+                now.setDate(now.getDate() - 1);
+            }
+            return now.toISOString().split("T")[0];
+        }
+
+        function getStoredQuote(deviceId, today) {
+            return localStorage.getItem("quote_" + deviceId + "_" + today);
+        }
+
+        function storeQuote(deviceId, today, quote) {
+            localStorage.setItem("quote_" + deviceId + "_" + today, quote);
+        }
+
+        async function getQuote() {
+            const quotes = await fetchQuotes();
+            if (quotes.length === 0) {
+                document.getElementById("quote").textContent = "Không thể tải quote.";
+                return;
+            }
+
+            const deviceId = getDeviceId();
+            const today = getTodayKey();
+            let storedQuote = getStoredQuote(deviceId, today);
+
+            if (!storedQuote) {
+                storedQuote = quotes[Math.floor(Math.random() * quotes.length)];
+                storeQuote(deviceId, today, storedQuote);
+            }
+
+            document.getElementById("quote").textContent = storedQuote;
+        }
+
+        function updateCountdown() {
+            let now = new Date();
+            let resetTime = new Date();
+            resetTime.setHours(5, 0, 0, 0);
+            if (now.getHours() >= 5) {
+                resetTime.setDate(resetTime.getDate() + 1);
+            }
+            let diff = resetTime - now;
+            let hours = Math.floor(diff / (1000 * 60 * 60));
+            let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            document.getElementById("countdown").textContent = `${hours}h ${minutes}m`;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            getQuote();
+            updateCountdown();
+            setInterval(updateCountdown, 60000);
+        });
+    </script>
+</body>
+</html>
